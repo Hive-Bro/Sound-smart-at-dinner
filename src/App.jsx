@@ -1,9 +1,66 @@
+import { useState, useEffect, useCallback } from 'react';
 import CategoryCard from './components/CategoryCard';
+import SynthesisLoading from './components/SynthesisLoading';
+import SynthesisView from './components/SynthesisView';
 import { categories } from './data/mockNews';
+import { getSynthesis } from './data/mockSynthesis';
 
 export default function App() {
+  const [view, setView] = useState('home');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [synthesis, setSynthesis] = useState(null);
+
+  const handleCategoryClick = useCallback((category) => {
+    setSelectedCategory(category);
+    setSynthesis(null);
+    setView('loading');
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setView('home');
+    setSelectedCategory(null);
+    setSynthesis(null);
+  }, []);
+
+  useEffect(() => {
+    if (view !== 'loading') return;
+
+    const timer = setTimeout(() => {
+      const data = getSynthesis(selectedCategory.key);
+      setSynthesis(data);
+      setView('synthesis');
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [view, selectedCategory]);
+
+  const categoryMeta = selectedCategory
+    ? categories.find((c) => c.key === selectedCategory.key)
+    : null;
+
+  if (view === 'loading' && selectedCategory) {
+    return (
+      <SynthesisLoading
+        categoryName={selectedCategory.name}
+        categoryColor={selectedCategory.color}
+      />
+    );
+  }
+
+  if (view === 'synthesis' && synthesis && selectedCategory) {
+    return (
+      <SynthesisView
+        synthesis={synthesis}
+        categoryName={selectedCategory.name}
+        categoryColor={selectedCategory.color}
+        onBack={handleBack}
+        onStartReading={() => console.log('Start reading:', selectedCategory.key)}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-950 flex flex-col">
       <header className="border-b border-gray-800/50">
         <div className="max-w-5xl mx-auto px-6 py-10">
           <p className="text-sm font-medium tracking-widest uppercase text-gray-500 mb-2">
@@ -23,7 +80,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
+      <main className="max-w-5xl mx-auto px-6 py-10 flex-1">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {categories.map((cat) => (
             <CategoryCard
@@ -32,7 +89,7 @@ export default function App() {
               icon={cat.icon}
               color={cat.color}
               articleCount={cat.articleCount}
-              onClick={() => console.log(`Navigate to ${cat.key}`)}
+              onClick={() => handleCategoryClick(cat)}
             />
           ))}
         </div>
